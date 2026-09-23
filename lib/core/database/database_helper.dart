@@ -157,36 +157,45 @@ class DatabaseHelper {
   }
 
   Future<void> _migrateStudentV4(Database db) async {
-    final cols = await db.rawQuery('PRAGMA table_info($tableStudent)');
-    final names = cols.map((c) => c['name'] as String).toSet();
-    if (names.contains('firstName')) return;
-    await db.execute(
-      'ALTER TABLE $tableStudent ADD COLUMN firstName TEXT NOT NULL DEFAULT \'\'',
-    );
-    await db.execute(
-      'ALTER TABLE $tableStudent ADD COLUMN middleName TEXT NOT NULL DEFAULT \'\'',
-    );
-    await db.execute(
-      'ALTER TABLE $tableStudent ADD COLUMN paternalLastName TEXT NOT NULL DEFAULT \'\'',
-    );
-    await db.execute(
-      'ALTER TABLE $tableStudent ADD COLUMN maternalLastName TEXT NOT NULL DEFAULT \'\'',
-    );
-    if (names.contains('fullName')) {
+    Future<Set<String>> columnNames() async {
+      final cols = await db.rawQuery('PRAGMA table_info($tableStudent)');
+      return cols.map((c) => c['name'] as String).toSet();
+    }
+
+    Future<void> addColumn(String name) async {
+      if ((await columnNames()).contains(name)) return;
+      await db.execute(
+        'ALTER TABLE $tableStudent ADD COLUMN $name TEXT NOT NULL DEFAULT \'\'',
+      );
+    }
+
+    Future<void> dropColumn(String name) async {
+      if (!(await columnNames()).contains(name)) return;
+      try {
+        await db.execute('ALTER TABLE $tableStudent DROP COLUMN $name');
+      } catch (_) {
+        await db.execute(
+          'UPDATE $tableStudent SET $name = \'\' WHERE $name IS NULL',
+        );
+      }
+    }
+
+    await addColumn('firstName');
+    await addColumn('middleName');
+    await addColumn('paternalLastName');
+    await addColumn('maternalLastName');
+
+    if ((await columnNames()).contains('fullName')) {
       await db.execute(
         'UPDATE $tableStudent SET firstName = fullName WHERE firstName = \'\'',
       );
+      await dropColumn('fullName');
     }
-    if (names.contains('lastName')) {
+    if ((await columnNames()).contains('lastName')) {
       await db.execute(
         'UPDATE $tableStudent SET paternalLastName = lastName WHERE paternalLastName = \'\'',
       );
-    }
-    if (names.contains('fullName')) {
-      await db.execute('ALTER TABLE $tableStudent DROP COLUMN fullName');
-    }
-    if (names.contains('lastName')) {
-      await db.execute('ALTER TABLE $tableStudent DROP COLUMN lastName');
+      await dropColumn('lastName');
     }
   }
 
