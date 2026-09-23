@@ -9,9 +9,12 @@ class StudentModel extends StudentEntity {
     super.maternalLastName = '',
     super.attendanceStatus = 'PRESENT',
     super.absences = 0,
+    super.averagePercentage,
   });
 
   factory StudentModel.fromMap(Map<String, dynamic> map) {
+    final rawAvg = map['averagePercentage'];
+    final double? avg = rawAvg is num ? rawAvg.toDouble() : null;
     return StudentModel(
       id: map['id'] as int?,
       firstName: (map['firstName'] as String?) ?? '',
@@ -20,6 +23,7 @@ class StudentModel extends StudentEntity {
       maternalLastName: (map['maternalLastName'] as String?) ?? '',
       attendanceStatus: (map['attendanceStatus'] as String?) ?? 'PRESENT',
       absences: (map['absences'] as int?) ?? 0,
+      averagePercentage: avg,
     );
   }
 
@@ -43,6 +47,7 @@ class StudentModel extends StudentEntity {
     String? maternalLastName,
     String? attendanceStatus,
     int? absences,
+    double? averagePercentage,
   }) {
     return StudentModel(
       id: id ?? this.id,
@@ -52,6 +57,7 @@ class StudentModel extends StudentEntity {
       maternalLastName: maternalLastName ?? this.maternalLastName,
       attendanceStatus: attendanceStatus ?? this.attendanceStatus,
       absences: absences ?? this.absences,
+      averagePercentage: averagePercentage ?? this.averagePercentage,
     );
   }
 }

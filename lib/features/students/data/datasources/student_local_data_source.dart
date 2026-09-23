@@ -39,9 +39,13 @@ class StudentLocalDataSourceImpl implements StudentLocalDataSource {
   Future<List<StudentModel>> getStudents() async {
     try {
       final db = await dbHelper.database;
-      final rows = await db.query(
-        DatabaseHelper.tableStudent,
-        orderBy: 'firstName COLLATE NOCASE ASC, paternalLastName COLLATE NOCASE ASC',
+      final rows = await db.rawQuery(
+        'SELECT s.*, AVG((g.score / a.maxScore) * 100.0) AS averagePercentage '
+        'FROM ${DatabaseHelper.tableStudent} s '
+        'LEFT JOIN ${DatabaseHelper.tableGrade} g ON g.studentId = s.id '
+        'LEFT JOIN ${DatabaseHelper.tableAssessment} a ON a.id = g.assessmentId '
+        'GROUP BY s.id '
+        'ORDER BY s.firstName COLLATE NOCASE ASC, s.paternalLastName COLLATE NOCASE ASC',
       );
       return rows.map(StudentModel.fromMap).toList();
     } catch (e) {
@@ -54,13 +58,14 @@ class StudentLocalDataSourceImpl implements StudentLocalDataSource {
     try {
       final db = await dbHelper.database;
       final rows = await db.rawQuery(
-        'SELECT ${DatabaseHelper.tableStudent}.* '
-        'FROM ${DatabaseHelper.tableStudent} '
-        'INNER JOIN ${DatabaseHelper.tableEnrollment} '
-        'ON ${DatabaseHelper.tableEnrollment}.studentId = ${DatabaseHelper.tableStudent}.id '
-        'WHERE ${DatabaseHelper.tableEnrollment}.courseId = ? '
-        'ORDER BY ${DatabaseHelper.tableStudent}.firstName COLLATE NOCASE ASC, '
-        '${DatabaseHelper.tableStudent}.paternalLastName COLLATE NOCASE ASC',
+        'SELECT s.*, AVG((g.score / a.maxScore) * 100.0) AS averagePercentage '
+        'FROM ${DatabaseHelper.tableStudent} s '
+        'INNER JOIN ${DatabaseHelper.tableEnrollment} e ON e.studentId = s.id '
+        'LEFT JOIN ${DatabaseHelper.tableAssessment} a ON a.courseId = e.courseId '
+        'LEFT JOIN ${DatabaseHelper.tableGrade} g ON g.assessmentId = a.id AND g.studentId = s.id '
+        'WHERE e.courseId = ? '
+        'GROUP BY s.id '
+        'ORDER BY s.firstName COLLATE NOCASE ASC, s.paternalLastName COLLATE NOCASE ASC',
         [courseId],
       );
       return rows.map(StudentModel.fromMap).toList();

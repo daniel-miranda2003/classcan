@@ -8,6 +8,7 @@ class StudentEntity extends Equatable {
   final String maternalLastName;
   final String attendanceStatus;
   final int absences;
+  final double? averagePercentage;
 
   const StudentEntity({
     this.id,
@@ -17,6 +18,7 @@ class StudentEntity extends Equatable {
     this.maternalLastName = '',
     this.attendanceStatus = 'PRESENT',
     this.absences = 0,
+    this.averagePercentage,
   });
 
   String get displayName => [
@@ -28,6 +30,9 @@ class StudentEntity extends Equatable {
 
   String get shortName => '$firstName $paternalLastName'.trim();
 
+  bool get isFailing => averagePercentage != null && averagePercentage! < 51.0;
+  bool get isPassing => averagePercentage != null && averagePercentage! >= 51.0;
+
   @override
   List<Object?> get props => [
         id,
@@ -37,5 +42,6 @@ class StudentEntity extends Equatable {
         maternalLastName,
         attendanceStatus,
         absences,
+        averagePercentage,
       ];
 }

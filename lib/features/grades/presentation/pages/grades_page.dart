@@ -63,8 +63,18 @@ class _GradesPageState extends ConsumerState<GradesPage> {
     final coursesAsync = ref.watch(courseProvider);
     final grades = ref.watch(gradesProvider);
     final notifier = ref.read(gradesProvider.notifier);
+    final canPop = ModalRoute.of(context)?.canPop ?? false;
 
     return Scaffold(
+      appBar: canPop
+          ? AppBar(
+              title: Text(
+                grades.selectedAssessment != null
+                    ? 'Calificar: ${grades.selectedAssessment!.title}'
+                    : 'Calificar Evaluación',
+              ),
+            )
+          : null,
       body: Column(
         children: [
           _FiltersCard(
@@ -265,6 +275,7 @@ class _GradesBody extends ConsumerWidget {
     }
 
     final max = state.selectedAssessment?.maxScore;
+    final isExam = state.selectedAssessment?.type == 'EXAM';
     final notifier = ref.read(gradesProvider.notifier);
     final graded = state.rows.where((r) => r.savedScore != null).length;
 
@@ -301,6 +312,7 @@ class _GradesBody extends ConsumerWidget {
                 name: row.student.displayName,
                 savedScore: row.savedScore,
                 max: max,
+                isExam: isExam,
                 controller: controller,
               );
             },
@@ -315,22 +327,57 @@ class _GradeCard extends StatelessWidget {
   final String name;
   final double? savedScore;
   final double? max;
+  final bool isExam;
   final TextEditingController controller;
 
   const _GradeCard({
     required this.name,
     required this.savedScore,
     required this.max,
+    this.isExam = false,
     required this.controller,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final double? pct = (savedScore != null && max != null && max! > 0)
+        ? (savedScore! / max!) * 100.0
+        : null;
+    final bool isFailing = isExam && pct != null && pct < 51.0;
+    final bool isPassing = isExam && pct != null && pct >= 51.0;
+
+    final Color statusBg = isFailing
+        ? theme.colorScheme.errorContainer
+        : isPassing
+        ? Colors.green.shade100
+        : theme.colorScheme.primary.withValues(alpha: 0.12);
+
+    final Color statusFg = isFailing
+        ? theme.colorScheme.onErrorContainer
+        : isPassing
+        ? Colors.green.shade900
+        : theme.colorScheme.primary;
+
+    final String statusText = savedScore == null
+        ? 'Sin calificar'
+        : isFailing
+        ? 'Guardada: ${_fmt(savedScore!)} · Reprobado'
+        : isPassing
+        ? 'Guardada: ${_fmt(savedScore!)} · Aprobado'
+        : 'Guardada: ${_fmt(savedScore!)}';
+
     return Card(
       elevation: 0,
-      color: theme.colorScheme.surfaceContainerHighest,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      color: isFailing
+          ? theme.colorScheme.errorContainer.withValues(alpha: 0.35)
+          : theme.colorScheme.surfaceContainerHighest,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: isFailing
+            ? BorderSide(color: theme.colorScheme.error, width: 1.5)
+            : BorderSide.none,
+      ),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Row(
@@ -341,7 +388,12 @@ class _GradeCard extends StatelessWidget {
                 children: [
                   Text(
                     name,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: isFailing
+                          ? theme.colorScheme.error
+                          : theme.colorScheme.onSurface,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Container(
@@ -350,15 +402,13 @@ class _GradeCard extends StatelessWidget {
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                      color: statusBg,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      savedScore == null
-                          ? 'Sin calificar'
-                          : 'Guardada: ${_fmt(savedScore!)}',
+                      statusText,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.primary,
+                        color: statusFg,
                         fontWeight: FontWeight.w600,
                       ),
                     ),

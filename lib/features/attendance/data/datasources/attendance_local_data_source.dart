@@ -44,36 +44,30 @@ class AttendanceLocalDataSourceImpl implements AttendanceLocalDataSource {
     try {
       final db = await dbHelper.database;
       await db.transaction((txn) async {
+        final batch = txn.batch();
         for (final record in records) {
           final map = record.toMap()..remove('id');
-          final updated = await txn.update(
+          batch.insert(
             DatabaseHelper.tableAttendanceRecord,
-            {'status': record.status},
-            where: 'studentId = ? AND courseId = ? AND date = ?',
-            whereArgs: [record.studentId, record.courseId, record.date],
+            map,
+            conflictAlgorithm: ConflictAlgorithm.replace,
           );
-          if (updated == 0) {
-            await txn.insert(DatabaseHelper.tableAttendanceRecord, map);
-          }
         }
+        await batch.commit(noResult: true);
 
         final studentIds = records.map((r) => r.studentId).toSet();
-        for (final studentId in studentIds) {
-          final count =
-              Sqflite.firstIntValue(
-                await txn.rawQuery(
-                  'SELECT COUNT(*) FROM ${DatabaseHelper.tableAttendanceRecord} '
-                  'WHERE studentId = ? AND status = ?',
-                  [studentId, 'ABSENT'],
-                ),
-              ) ??
-              0;
-          await txn.update(
-            DatabaseHelper.tableStudent,
-            {'absences': count},
-            where: 'id = ?',
-            whereArgs: [studentId],
-          );
+        if (studentIds.isNotEmpty) {
+          final studentIdsList = studentIds.join(',');
+          await txn.execute('''
+            UPDATE ${DatabaseHelper.tableStudent}
+            SET absences = (
+              SELECT COUNT(*)
+              FROM ${DatabaseHelper.tableAttendanceRecord}
+              WHERE ${DatabaseHelper.tableAttendanceRecord}.studentId = ${DatabaseHelper.tableStudent}.id
+                AND status = 'ABSENT'
+            )
+            WHERE id IN ($studentIdsList)
+          ''');
         }
       });
     } on AttendanceValidationException {

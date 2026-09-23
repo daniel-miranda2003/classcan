@@ -51,5 +51,6 @@ class StudentRepositoryImpl implements StudentRepository {
         maternalLastName: e.maternalLastName,
         attendanceStatus: e.attendanceStatus,
         absences: e.absences,
+        averagePercentage: e.averagePercentage,
       );
 }

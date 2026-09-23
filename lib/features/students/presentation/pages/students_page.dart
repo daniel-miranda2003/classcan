@@ -188,40 +188,76 @@ class _StudentCard extends StatelessWidget {
 
     return Card(
       elevation: 0,
-      color: theme.colorScheme.surfaceContainerHighest,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      color: student.isFailing
+          ? theme.colorScheme.errorContainer.withValues(alpha: 0.35)
+          : theme.colorScheme.surfaceContainerHighest,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: student.isFailing
+            ? BorderSide(color: theme.colorScheme.error, width: 1.5)
+            : BorderSide.none,
+      ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         onTap: onTap,
         title: Text(
           student.displayName,
-          style: const TextStyle(fontWeight: FontWeight.w600),
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: student.isFailing
+                ? theme.colorScheme.error
+                : theme.colorScheme.onSurface,
+          ),
         ),
-        subtitle: Text(
-          student.absences == 0
-              ? 'Sin ausencias'
-              : student.absences == 1
-              ? '1 ausencia'
-              : '${student.absences} ausencias',
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              student.absences == 0
+                  ? 'Sin ausencias'
+                  : student.absences == 1
+                  ? '1 ausencia'
+                  : '${student.absences} ausencias',
+            ),
+            if (student.averagePercentage != null)
+              Text(
+                'Promedio: ${student.averagePercentage!.toStringAsFixed(1)}%',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                  color: student.isFailing
+                      ? theme.colorScheme.error
+                      : Colors.green.shade800,
+                ),
+              ),
+          ],
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (student.absences > 0)
+            if (student.averagePercentage != null)
               Container(
+                margin: const EdgeInsets.only(right: 4),
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
+                  horizontal: 8,
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.errorContainer,
+                  color: student.isFailing
+                      ? theme.colorScheme.errorContainer
+                      : Colors.green.shade100,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  '${student.absences}',
+                  student.isFailing
+                      ? 'Reprobado'
+                      : 'Aprobado',
                   style: TextStyle(
-                    color: theme.colorScheme.onErrorContainer,
+                    color: student.isFailing
+                        ? theme.colorScheme.onErrorContainer
+                        : Colors.green.shade900,
                     fontWeight: FontWeight.bold,
+                    fontSize: 12,
                   ),
                 ),
               ),
@@ -289,6 +325,67 @@ class _StudentDetailSheet extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: student.isFailing
+                  ? theme.colorScheme.errorContainer
+                  : student.isPassing
+                  ? Colors.green.shade100
+                  : theme.colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  student.isFailing
+                      ? Icons.warning_amber_rounded
+                      : student.isPassing
+                      ? Icons.check_circle_outline
+                      : Icons.grade_outlined,
+                  color: student.isFailing
+                      ? theme.colorScheme.onErrorContainer
+                      : student.isPassing
+                      ? Colors.green.shade900
+                      : theme.colorScheme.primary,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        student.averagePercentage == null
+                            ? 'Sin calificaciones en evaluaciones'
+                            : student.isFailing
+                            ? 'Reprobado (${student.averagePercentage!.toStringAsFixed(1)}%)'
+                            : 'Aprobado (${student.averagePercentage!.toStringAsFixed(1)}%)',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: student.isFailing
+                              ? theme.colorScheme.onErrorContainer
+                              : student.isPassing
+                              ? Colors.green.shade900
+                              : theme.colorScheme.onSurface,
+                        ),
+                      ),
+                      if (student.averagePercentage != null)
+                        Text(
+                          'Nota mínima de aprobación: 51.0%',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: student.isFailing
+                                ? theme.colorScheme.onErrorContainer.withValues(alpha: 0.8)
+                                : Colors.green.shade800,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(

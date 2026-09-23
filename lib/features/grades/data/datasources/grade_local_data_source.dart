@@ -1,4 +1,6 @@
-﻿import '../../../../core/database/database_helper.dart';
+﻿import 'package:sqflite/sqflite.dart';
+
+import '../../../../core/database/database_helper.dart';
 import '../../../../core/error/exceptions.dart';
 import '../models/grade_model.dart';
 
@@ -35,20 +37,15 @@ class GradeLocalDataSourceImpl implements GradeLocalDataSource {
     try {
       final db = await dbHelper.database;
       await db.transaction((txn) async {
+        final batch = txn.batch();
         for (final grade in grades) {
-          final updated = await txn.update(
+          batch.insert(
             DatabaseHelper.tableGrade,
-            {'score': grade.score},
-            where: 'assessmentId = ? AND studentId = ?',
-            whereArgs: [grade.assessmentId, grade.studentId],
+            grade.toMap()..remove('id'),
+            conflictAlgorithm: ConflictAlgorithm.replace,
           );
-          if (updated == 0) {
-            await txn.insert(
-              DatabaseHelper.tableGrade,
-              grade.toMap()..remove('id'),
-            );
-          }
         }
+        await batch.commit(noResult: true);
       });
     } catch (e) {
       throw LocalDatabaseException('Error al guardar las notas: $e');

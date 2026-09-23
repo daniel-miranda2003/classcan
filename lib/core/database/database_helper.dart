@@ -10,7 +10,7 @@ class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._privateConstructor();
 
   static const _dbName = 'classcan.db';
-  static const _dbVersion = 5;
+  static const _dbVersion = 6;
 
   static const tableUser = 'User';
   static const tableCourse = 'Course';
@@ -86,8 +86,10 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE $tableStudent (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        fullName TEXT NOT NULL,
-        lastName TEXT NOT NULL,
+        firstName TEXT NOT NULL DEFAULT '',
+        middleName TEXT NOT NULL DEFAULT '',
+        paternalLastName TEXT NOT NULL DEFAULT '',
+        maternalLastName TEXT NOT NULL DEFAULT '',
         attendanceStatus TEXT NOT NULL DEFAULT 'PRESENT',
         absences INTEGER NOT NULL DEFAULT 0
       )
@@ -110,18 +112,29 @@ class DatabaseHelper {
       )
     ''');
 
-    await db.execute('CREATE INDEX idx_course_userId ON $tableCourse(userId)');
-    await db.execute(
-      'CREATE INDEX idx_attendance_student ON $tableAttendanceRecord(studentId)',
-    );
-    await db.execute(
-      'CREATE INDEX idx_attendance_course_date ON $tableAttendanceRecord(courseId, date)',
-    );
-
     await _createV2Tables(db);
     await _createV3Tables(db);
     await _migrateStudentV4(db);
+    await _createIndexes(db);
     await _seedDefaultUser(db);
+  }
+
+  Future<void> _createIndexes(Database db) async {
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_course_userId ON $tableCourse(userId)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_attendance_student ON $tableAttendanceRecord(studentId)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_attendance_course_date ON $tableAttendanceRecord(courseId, date)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_student_name ON $tableStudent(firstName, paternalLastName)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_attendance_status ON $tableAttendanceRecord(studentId, status)',
+    );
   }
 
   Future<void> _seedDefaultUser(Database db) async {
@@ -153,6 +166,10 @@ class DatabaseHelper {
     }
     if (oldVersion < 5) {
       await _seedDefaultUser(db);
+    }
+    if (oldVersion < 6) {
+      await _migrateStudentV4(db);
+      await _createIndexes(db);
     }
   }
 

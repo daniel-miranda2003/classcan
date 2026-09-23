@@ -241,8 +241,12 @@ class _AssessmentCard extends StatelessWidget {
       color: theme.colorScheme.surfaceContainerHighest,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         onTap: onTap,
+        leading: CircleAvatar(
+          backgroundColor: theme.colorScheme.primaryContainer,
+          child: Icon(icon, color: theme.colorScheme.onPrimaryContainer),
+        ),
         title: Text(
           item.title,
           style: const TextStyle(fontWeight: FontWeight.w600),
@@ -250,11 +254,11 @@ class _AssessmentCard extends StatelessWidget {
         subtitle: Text(
           '${_prettyDate(item.date)} · Máx. ${_fmt(item.maxScore)}',
         ),
-        // trailing: IconButton(
-        //   tooltip: 'Eliminar',
-        //   icon: const Icon(Icons.delete_outline),
-        //   onPressed: onDelete,
-        // ),
+        trailing: FilledButton.tonalIcon(
+          onPressed: onTap,
+          icon: const Icon(Icons.edit_note, size: 18),
+          label: const Text('Calificar'),
+        ),
       ),
     );
   }
